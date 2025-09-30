@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Prep Chatbot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a202c; }
+        ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #718096; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .option-btn { transition: all 0.2s ease-in-out; }
+        .option-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .correct { background-color: #38a169 !important; border-color: #38a169 !important; }
+        .incorrect { background-color: #e53e3e !important; border-color: #e53e3e !important; }
+        
+        .light { background-color: #f7fafc; color: #1a202c; }
+        .light header, .light footer { background-color: #ffffff; border-color: #e2e8f0; }
+        .light #main-content { background-color: #edf2f7; }
+        .light ::-webkit-scrollbar-track { background: #edf2f7; }
+        .light ::-webkit-scrollbar-thumb { background: #cbd5e0; }
+        .light .bot-bubble { background-color: #e2e8f0; color: #2d3748; }
+        .light .user-bubble { background-color: #4c51bf; color: #ffffff; }
+        .light #role-input-container { background-color: #e2e8f0; }
+        .light #role-input { color: #2d3748; }
+        .light #role-input::placeholder { color: #718096; }
+        .light #autocomplete-list { background-color: #ffffff; border-color: #e2e8f0; }
+        .light #autocomplete-list div:hover { background-color: #edf2f7; }
+        .light .quiz-card, .light .mock-card { background-color: #ffffff; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col h-screen antialiased transition-colors duration-300">
+
+    <header class="bg-gray-800 shadow-md p-4 flex items-center justify-between border-b border-gray-700">
+        <div class="flex items-center">
+            <div class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center font-bold text-xl mr-3">P</div>
+            <div>
+                <h1 class="text-lg font-bold">Interview Prep Bot</h1>
+                <p class="text-xs text-gray-400">A project by Priyanshu</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+             <button id="theme-toggle" class="w-10 h-10 rounded-full flex items-center justify-center bg-gray-700 hover:bg-gray-600 transition">
+                <svg id="theme-icon-sun" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                <svg id="theme-icon-moon" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+            </button>
+            <button id="restart-btn" class="hidden bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold py-2 px-4 rounded-lg transition duration-300">Change Role</button>
+        </div>
+    </header>
+
+    <main id="main-content" class="flex-1 p-4 overflow-y-auto bg-gray-800/50">
+        <div id="chat-container" class="space-y-4"></div>
+        <div id="dynamic-container" class="hidden w-full max-w-3xl mx-auto"></div>
+    </main>
+
+    <footer id="footer" class="bg-gray-800 p-4 border-t border-gray-700">
+        <div id="role-input-container" class="relative flex items-center rounded-lg bg-gray-700">
+            <input type="text" id="role-input" placeholder="Enter a job role (e.g., Software Engineer)" class="w-full bg-transparent p-3 rounded-l-lg focus:outline-none placeholder-gray-400">
+            <div id="autocomplete-list" class="absolute bottom-full mb-2 w-full bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-10 overflow-hidden"></div>
+            <button id="send-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-r-lg transition duration-300">
+                Send
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        const chatbotData = {
+            "software engineer": {
+                technical: [
+                    { q: "Explain Big O notation.", a: "<strong>Big O notation</strong> describes the worst-case performance of an algorithm as the input size grows.", difficulty: "easy" },
+                    { q: "Difference between `Abstract Class` and `Interface`?", a: "An <strong>Abstract Class</strong> is a blueprint for related classes ('is-a' relationship). An <strong>Interface</strong> is a contract for what a class can do ('has-a' capability).", difficulty: "medium" },
+                    { q: "What is a singleton pattern?", a: "A design pattern that restricts the instantiation of a class to a single object. Useful for things like loggers or database connections.", difficulty: "hard" },
+                ],
+                hr: [ { q: "Tell me about a challenging project.", a: "Use the <strong>STAR method</strong> (Situation, Task, Action, Result) to structure your answer." } ],
+                mcqs: [
+                    { q: "Which data structure is FIFO?", options: ["Stack", "Queue", "Array"], correct: 1, explanation: "FIFO stands for First-In-First-Out, which is the principle of a Queue." },
+                    { q: "What is the time complexity of a binary search?", options: ["O(n)", "O(log n)", "O(n^2)"], correct: 1, explanation: "Binary search divides the search space in half with each step, resulting in logarithmic time complexity." }
+                ],
+                resources: [
+                    { title: "Cracking the Coding Interview - Book", url: "#" },
+                    { title: "LeetCode - Practice Platform", url: "#" }
+                ]
+            },
+             "data analyst": {
+                technical: [
+                    { q: "LEFT JOIN vs. INNER JOIN in SQL?", a: "An <strong>INNER JOIN</strong> returns only rows where the join condition is met in both tables. A <strong>LEFT JOIN</strong> returns all rows from the left table and matched rows from the right.", difficulty: "easy" },
+                    { q: "Explain p-value.", a: "The <strong>p-value</strong> is the probability of obtaining results as extreme as observed, assuming the null hypothesis is true. A small p-value (≤ 0.05) suggests rejecting the null hypothesis.", difficulty: "medium" },
+                    { q: "What is the difference between covariance and correlation?", a: "<strong>Covariance</strong> shows the direction of the linear relationship between two variables. <strong>Correlation</strong> shows both the direction and strength of the linear relationship, and is standardized between -1 and 1.", difficulty: "hard"}
+                ],
+                hr: [ { q: "Tell me about a key insight you found in a dataset.", a: "Use the STAR method. Describe the situation, your task, the insight you found, and the positive business result." } ],
+                mcqs: [
+                    { q: "Which Python library is for data manipulation?", options: ["NumPy", "Pandas", "Matplotlib"], correct: 1, explanation: "Pandas is the primary library in Python for data manipulation and analysis, built on top of NumPy." },
+                    { q: "Which chart shows the relationship between two continuous variables?", options: ["Bar Chart", "Scatter Plot", "Pie Chart"], correct: 1, explanation: "A Scatter Plot is ideal for visualizing the relationship and correlation between two continuous variables." }
+                ],
+                resources: [
+                    { title: "Kaggle - Datasets and Competitions", url: "#" },
+                    { title: "SQLZoo - Interactive SQL Tutorial", url: "#" }
+                ]
+            },
+            "cybersecurity specialist": {
+                technical: [
+                    { q: "What is the CIA Triad?", a: "It stands for Confidentiality, Integrity, and Availability. It's a model designed to guide policies for information security within an organization.", difficulty: "easy" },
+                    { q: "Explain the difference between symmetric and asymmetric encryption.", a: "<strong>Symmetric encryption</strong> uses a single key for both encryption and decryption. <strong>Asymmetric encryption</strong> uses a public key for encryption and a private key for decryption.", difficulty: "medium" },
+                    { q: "What is a DDoS attack and how can you mitigate it?", a: "A Distributed Denial-of-Service (DDoS) attack overwhelms a server with traffic from multiple sources. Mitigation involves traffic filtering, rate limiting, and using services like CDNs.", difficulty: "hard"}
+                ],
+                hr: [ { q: "How do you stay updated on the latest cybersecurity threats and vulnerabilities?", a: "Mention following specific security blogs (like Krebs on Security), threat intelligence feeds, and participating in forums like SANS." } ],
+                mcqs: [ { q: "Which of the following is a common social engineering technique?", options: ["DDoS", "Phishing", "SQL Injection"], correct: 1, explanation: "Phishing involves tricking users into revealing sensitive information, often through deceptive emails or websites." } ],
+                resources: [ { title: "OWASP Top 10", url: "#" }, { title: "Krebs on Security Blog", url: "#" } ]
+            },
+            "cloud computing engineer": {
+                technical: [
+                    { q: "What is the difference between IaaS, PaaS, and SaaS?", a: "<strong>IaaS</strong> (Infrastructure as a Service) provides virtualized computing resources. <strong>PaaS</strong> (Platform as a Service) provides a platform for development. <strong>SaaS</strong> (Software as a Service) provides ready-to-use software.", difficulty: "easy" },
+                    { q: "Explain the concept of autoscaling in the cloud.", a: "Autoscaling automatically adjusts the number of compute resources in a server farm - typically based on the number of active users.", difficulty: "medium" },
+                    { q: "What is a Virtual Private Cloud (VPC)?", a: "A VPC is a secure, isolated private cloud hosted within a public cloud. It allows you to define your own virtual network.", difficulty: "hard"}
+                ],
+                hr: [ { q: "Describe a time you had to troubleshoot a cloud service outage.", a: "Focus on your systematic approach: identifying the scope, checking monitoring dashboards, communicating with stakeholders, and documenting the resolution." } ],
+                mcqs: [ { q: "Which AWS service is used for object storage?", options: ["EC2", "S3", "RDS"], correct: 1, explanation: "S3 (Simple Storage Service) is AWS's scalable object storage solution for files, backups, and media." } ],
+                resources: [ { title: "AWS/Azure/GCP Documentation", url: "#" }, { title: "A Cloud Guru Training", url: "#" } ]
+            },
+            "data scientist": {
+                technical: [
+                    { q: "Explain the difference between supervised and unsupervised learning.", a: "<strong>Supervised learning</strong> uses labeled data to train models. <strong>Unsupervised learning</strong> works with unlabeled data to find patterns.", difficulty: "easy" },
+                    { q: "What is feature engineering?", a: "The process of using domain knowledge to create features that make machine learning algorithms work better. It involves data transformation and creation of new variables.", difficulty: "medium" },
+                    { q: "Describe the bias-variance tradeoff.", a: "A central problem in supervised learning. <strong>Bias</strong> is error from erroneous assumptions. <strong>Variance</strong> is error from sensitivity to small fluctuations in the training set. A good model strikes a balance.", difficulty: "hard"}
+                ],
+                hr: [ { q: "How would you explain a complex machine learning model to a non-technical stakeholder?", a: "Use analogies and focus on the business impact and outcomes rather than the technical details of the algorithm." } ],
+                mcqs: [ { q: "Which of these is a classification algorithm?", options: ["K-Means", "Linear Regression", "Logistic Regression"], correct: 2, explanation: "Logistic Regression is used to predict a categorical outcome (e.g., yes/no, true/false)." } ],
+                resources: [ { title: "Towards Data Science Blog", url: "#" }, { title: "Scikit-learn Documentation", url: "#" } ]
+            },
+            "network engineer": {
+                technical: [
+                    { q: "Explain the OSI model.", a: "The Open Systems Interconnection (OSI) model is a 7-layer conceptual framework that standardizes the functions of a telecommunication or computing system.", difficulty: "easy" },
+                    { q: "What is the difference between TCP and UDP?", a: "<strong>TCP</strong> is a connection-oriented protocol that guarantees delivery. <strong>UDP</strong> is a connectionless protocol that is faster but does not guarantee delivery.", difficulty: "medium" },
+                    { q: "What is BGP (Border Gateway Protocol)?", a: "BGP is the routing protocol used to exchange routing information across the internet, allowing different autonomous systems to communicate.", difficulty: "hard"}
+                ],
+                hr: [ { q: "Describe a complex network issue you resolved.", a: "Use the STAR method. Detail the symptoms, your diagnostic process (e.g., using `ping`, `traceroute`), the solution, and the final result." } ],
+                mcqs: [ { q: "Which layer of the OSI model do routers primarily operate at?", options: ["Layer 2 (Data Link)", "Layer 3 (Network)", "Layer 4 (Transport)"], correct: 1, explanation: "Routers make forwarding decisions based on IP addresses, which exist at the Network Layer (Layer 3)." } ],
+                resources: [ { title: "Cisco Networking Academy", url: "#" }, { title: "Wireshark Documentation", url: "#" } ]
+            },
+            "devops engineer": {
+                technical: [
+                    { q: "What is Infrastructure as Code (IaC)?", a: "Managing and provisioning infrastructure through code instead of through manual processes. Tools include Terraform and CloudFormation.", difficulty: "easy" },
+                    { q: "Explain the concept of CI/CD.", a: "<strong>CI (Continuous Integration)</strong> is frequently merging code changes. <strong>CD (Continuous Delivery/Deployment)</strong> is automatically releasing those changes to production.", difficulty: "medium" }
+                ],
+                hr: [ { q: "How would you foster a DevOps culture?", a: "Focus on breaking down silos between dev and ops, encouraging shared responsibility, automating processes, and focusing on fast feedback loops." } ],
+                mcqs: [ { q: "Which tool is commonly used for container orchestration?", options: ["Docker", "Jenkins", "Kubernetes"], correct: 2, explanation: "Kubernetes is the de facto standard for orchestrating and managing containerized applications at scale." } ],
+                resources: [ { title: "The DevOps Handbook - Book", url: "#" }, { title: "Terraform Documentation", url: "#" } ]
+            },
+            "ai/machine learning engineer": {
+                technical: [
+                    { q: "What is a confusion matrix?", a: "A table used to describe the performance of a classification model. It shows true positives, true negatives, false positives, and false negatives.", difficulty: "easy" },
+                    { q: "Explain backpropagation in neural networks.", a: "It's the algorithm used to train neural networks. It calculates the gradient of the loss function with respect to the network's weights, allowing the model to learn.", difficulty: "medium" },
+                    { q: "Difference between a Generative and a Discriminative model?", a: "A <strong>Discriminative</strong> model learns the boundary between classes. A <strong>Generative</strong> model learns the distribution of the data itself.", difficulty: "hard"}
+                ],
+                hr: [ { q: "How do you approach a new machine learning problem from scratch?", a: "Describe your process: understanding the business problem, data collection and cleaning, feature engineering, model selection, training, and deployment." } ],
+                mcqs: [ { q: "Which framework is commonly used for building neural networks?", options: ["Pandas", "TensorFlow", "Flask"], correct: 1, explanation: "TensorFlow (and PyTorch) are the leading open-source frameworks for building and training deep learning models." } ],
+                resources: [ { title: "PyTorch Documentation", url: "#" }, { title: "DeepLearning.AI Courses", url: "#" } ]
+            },
+            "system administrator": {
+                technical: [
+                    { q: "What is DNS and how does it work?", a: "The Domain Name System (DNS) translates human-readable domain names (like google.com) into machine-readable IP addresses.", difficulty: "easy" },
+                    { q: "Explain RAID levels (e.g., RAID 0, 1, 5).", a: "RAID (Redundant Array of Independent Disks) is a way of storing data on multiple hard drives. Levels offer different balances of performance, storage capacity, and fault tolerance.", difficulty: "medium" }
+                ],
+                hr: [ { q: "How do you handle system downtime and communicate it to users?", a: "Talk about having a communication plan, providing clear and timely updates, and performing a post-mortem analysis to prevent recurrence." } ],
+                mcqs: [ { q: "Which command is used to check network connectivity in Linux/Windows?", options: ["ipconfig", "netstat", "ping"], correct: 2, explanation: "`ping` sends a packet to a host to test if it's reachable and measures the round-trip time." } ],
+                resources: [ { title: "Spiceworks Community", url: "#" }, { title: "Linux man pages", url: "#" } ]
+            },
+            "it support specialist": {
+                technical: [
+                    { q: "A user says 'my computer is slow'. What are your first troubleshooting steps?", a: "Check Task Manager/Activity Monitor for resource-hungry processes, check for malware, check available disk space, and ask about recently installed software.", difficulty: "easy" },
+                    { q: "How do you handle a suspected phishing email reported by a user?", a: "Advise the user not to click any links or open attachments. Analyze the email headers to verify its origin. Report and block the sender.", difficulty: "medium" }
+                ],
+                hr: [ { q: "Describe a time you dealt with a frustrated user. How did you handle it?", a: "Focus on active listening, empathy, and clear communication. Reassure the user and walk them through the solution step-by-step." } ],
+                mcqs: [ { q: "What does DHCP stand for?", options: ["Dynamic Host Configuration Protocol", "Data Host Control Protocol", "Domain Host Control Protocol"], correct: 0, explanation: "DHCP is a network protocol that automatically assigns IP addresses and other network configuration to devices." } ],
+                resources: [ { title: "CompTIA A+ Certification Guide", url: "#" }, { title: "Bleeping Computer Forums", url: "#" } ]
+            },
+            "ux/ui designer": {
+                technical: [
+                    { q: "What is the difference between UI and UX?", a: "<strong>UX (User Experience)</strong> is the overall experience a user has. <strong>UI (User Interface)</strong> is the specific visual design and interactive elements.", difficulty: "easy" },
+                    { q: "What is atomic design?", a: "A methodology for creating design systems by breaking interfaces into fundamental components (atoms, molecules, organisms, etc.).", difficulty: "medium" }
+                ],
+                hr: [ { q: "Walk me through your design process.", a: "Describe the steps: Empathize (research), Define (problem), Ideate (brainstorm), Prototype, and Test." } ],
+                mcqs: [ { q: "Which of these is a popular wireframing and prototyping tool?", options: ["Photoshop", "Figma", "Illustrator"], correct: 1, explanation: "Figma is a leading collaborative interface design tool used for wireframing, prototyping, and creating design systems." } ],
+                resources: [ { title: "Nielsen Norman Group Articles", url: "#" }, { title: "Awwwards - Design Inspiration", url: "#" } ]
+            },
+            "technical writer": {
+                technical: [
+                    { q: "Why is the active voice preferred in technical writing?", a: "The active voice is generally more direct, concise, and easier to understand than the passive voice.", difficulty: "easy" },
+                    { q: "What is your process for documenting a new software feature?", a: "Describe your process: work with engineers and PMs to understand the feature, define the audience, create an outline, write the draft, get reviews, and publish.", difficulty: "medium" }
+                ],
+                hr: [ { q: "How do you work with subject matter experts (like engineers) to gather information?", a: "Talk about being prepared, respecting their time, asking clear questions, and listening carefully." } ],
+                mcqs: [ { q: "What does DITA stand for?", options: ["Data Information Type Architecture", "Darwin Information Typing Architecture", "Document Information Type Architecture"], correct: 1, explanation: "DITA is an XML data model for authoring and publishing topic-oriented information." } ],
+                resources: [ { title: "Google Developer Documentation Style Guide", url: "#" }, { title: "Write the Docs Community", url: "#" } ]
+            },
+            "project manager": {
+                technical: [
+                    { q: "Explain the difference between Agile and Waterfall methodologies.", a: "<strong>Waterfall</strong> is a linear, sequential approach to development. <strong>Agile</strong> is an iterative approach that focuses on flexibility and customer feedback.", difficulty: "easy" },
+                    { q: "What is a Gantt chart used for?", a: "A Gantt chart is a bar chart that illustrates a project schedule, showing the start and finish dates of terminal elements and summary elements of a project.", difficulty: "medium" }
+                ],
+                hr: [ { q: "How do you handle a project that is falling behind schedule?", a: "Talk about identifying the root cause, re-evaluating priorities, communicating with stakeholders, and creating a recovery plan." } ],
+                mcqs: [ { q: "What does 'PMBOK' stand for?", options: ["Project Management Body of Knowledge", "Project Manager's Book of KPIs", "Project Management Business Objectives"], correct: 0, explanation: "The PMBOK Guide is the standard for project management from the Project Management Institute (PMI)." } ],
+                resources: [ { title: "Project Management Institute (PMI)", url: "#" }, { title: "Atlassian Agile Coach", url: "#" } ]
+            },
+            "blockchain developer": {
+                technical: [
+                    { q: "Explain what a smart contract is.", a: "A smart contract is a self-executing contract with the terms of the agreement directly written into code. They run on a blockchain.", difficulty: "easy" },
+                    { q: "What is the difference between a proof-of-work and a proof-of-stake consensus mechanism?", a: "<strong>Proof-of-work</strong> relies on miners solving complex puzzles. <strong>Proof-of-stake</strong> relies on validators staking their own cryptocurrency to validate transactions.", difficulty: "medium" }
+                ],
+                hr: [ { q: "Why are you interested in blockchain technology?", a: "Discuss your passion for decentralization, transparency, or a specific application of the technology that excites you." } ],
+                mcqs: [ { q: "Which of the following is a popular library for connecting to the Ethereum blockchain?", options: ["React", "Web3.js", "Node.js"], correct: 1, explanation: "Web3.js allows you to interact with a local or remote Ethereum node using JavaScript." } ],
+                resources: [ { title: "Ethereum.org Developer Resources", url: "#" }, { title: "Solidity Documentation", url: "#" } ]
+            },
+            "mobile app developer": {
+                technical: [
+                    { q: "What is the difference between native, hybrid, and web apps?", a: "<strong>Native</strong> apps are built for a specific OS (iOS/Android). <strong>Hybrid</strong> apps are web apps in a native wrapper. <strong>Web apps</strong> run in a browser.", difficulty: "easy" },
+                    { q: "How do you handle state management in a mobile app?", a: "Discuss different patterns and libraries like Provider, BLoC (for Flutter), or ViewModel with LiveData/StateFlow (for Android).", difficulty: "medium" }
+                ],
+                hr: [ { q: "Describe an app you've built or contributed to.", a: "Use the STAR method. Explain the app's purpose, your role, a technical challenge you faced, and the outcome." } ],
+                mcqs: [ { q: "Which language is primarily used for native Android development?", options: ["Swift", "Kotlin", "Dart"], correct: 1, explanation: "Kotlin is Google's official and recommended language for native Android development." } ],
+                resources: [ { title: "Android Developers Official Site", url: "#" }, { title: "Apple Developer Documentation", url: "#" } ]
+            },
+            "business intelligence analyst": {
+                technical: [
+                    { q: "What is an ETL process?", a: "ETL stands for Extract, Transform, Load. It is the process of moving data from a source system to a data warehouse.", difficulty: "easy" },
+                    { q: "How do you create an effective dashboard?", a: "Focus on understanding the audience and their key questions, choosing the right visualizations, and keeping the design clean and uncluttered.", difficulty: "medium" }
+                ],
+                hr: [ { q: "How do you translate business requirements into technical specifications for a report?", a: "Talk about asking clarifying questions, identifying key metrics (KPIs), and creating mockups to ensure alignment with stakeholders." } ],
+                mcqs: [ { q: "Which tool is a popular BI and data visualization platform?", options: ["Tableau", "Jira", "Figma"], correct: 0, explanation: "Tableau is a leading platform for business intelligence and creating interactive data visualizations and dashboards." } ],
+                resources: [ { title: "Microsoft Power BI Documentation", url: "#" }, { title: "Tableau Public Gallery", url: "#" } ]
+            }
+        };
+
+        const mainContent = document.getElementById('main-content');
+        const chatContainer = document.getElementById('chat-container');
+        const dynamicContainer = document.getElementById('dynamic-container');
+        const roleInput = document.getElementById('role-input');
+        const sendBtn = document.getElementById('send-btn');
+        const footer = document.getElementById('footer');
+        const roleInputContainer = document.getElementById('role-input-container');
+        const autocompleteList = document.getElementById('autocomplete-list');
+        const restartBtn = document.getElementById('restart-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+
+        let currentRole = null;
+        let mockInterviewTimer;
+
+        function addMessage(message, sender, isHtml = false) {
+            const bubble = document.createElement('div');
+            bubble.className = `max-w-xl lg:max-w-3xl p-4 rounded-lg shadow-md fade-in ${sender === 'user' ? 'user-bubble bg-indigo-500 ml-auto' : 'bot-bubble bg-gray-700'}`;
+            if (isHtml) bubble.innerHTML = message; else bubble.textContent = message;
+            chatContainer.appendChild(bubble);
+            mainContent.scrollTop = mainContent.scrollHeight;
+        }
+
+        function handleRoleInput() {
+            const userText = roleInput.value.trim().toLowerCase();
+            if (!userText) return;
+            addMessage(roleInput.value.trim(), 'user');
+            roleInput.value = '';
+            autocompleteList.innerHTML = '';
+            
+            setTimeout(() => {
+                const roleData = chatbotData[userText];
+                if (roleData) {
+                    currentRole = userText;
+                    showModeSelection();
+                } else {
+                    addMessage("Sorry, I don't have questions for that role. Please try another.", 'bot', true);
+                }
+            }, 800);
+        }
+
+        function showModeSelection() {
+            const roleTitle = currentRole.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            let message = `<p class="mb-4">Great! Ready to prep for a <strong>${roleTitle}</strong> role. What would you like to do?</p>`;
+            message += `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                <button onclick="startMockInterview()" class="text-left bg-indigo-500 hover:bg-indigo-600 p-4 rounded-lg transition"><strong>Mock Interview</strong><p class="text-sm text-indigo-100">Answer questions one-by-one with a timer.</p></button>
+                <button onclick="startQA()" class="text-left bg-gray-600 hover:bg-gray-500 p-4 rounded-lg transition"><strong>Q&A List</strong><p class="text-sm text-gray-300">Review all questions and model answers.</p></button>
+                <button onclick="startQuiz()" class="text-left bg-gray-600 hover:bg-gray-500 p-4 rounded-lg transition"><strong>MCQ Quiz</strong><p class="text-sm text-gray-300">Test your knowledge with a quick quiz.</p></button>
+                <button onclick="displayProgress()" class="text-left bg-gray-600 hover:bg-gray-500 p-4 rounded-lg transition"><strong>View Progress</strong><p class="text-sm text-gray-300">See your past quiz scores.</p></button>
+            </div>`;
+            addMessage(message, 'bot', true);
+            roleInputContainer.classList.add('hidden');
+            restartBtn.classList.remove('hidden');
+        }
+
+        function startQA() {
+            const data = chatbotData[currentRole];
+            let response = `<p class="mb-4">Here are some questions for a <strong>${currentRole.replace(/\b\w/g, l => l.toUpperCase())}</strong> role. 🚀</p>`;
+            response += `<h2 class="text-lg font-bold mt-4 mb-2">💻 Technical Questions</h2>`;
+            data.technical.forEach(item => response += `<div class="mb-3"><strong>${item.q}</strong> <span class="text-xs px-2 py-1 bg-gray-600 rounded-full">${item.difficulty}</span><p class="text-sm text-gray-300 mt-1 pl-2">${item.a}</p></div>`);
+            response += `<h2 class="text-lg font-bold mt-6 mb-2">👥 HR Questions</h2>`;
+            data.hr.forEach(item => response += `<div class="mb-3"><strong>${item.q}</strong><p class="text-sm text-gray-300 mt-1 pl-2">${item.a}</p></div>`);
+            addMessage(response, 'bot', true);
+            displayResources();
+        }
+
+        function startMockInterview() {
+            let difficultyHtml = `<p class="mb-4">Let's start a mock interview. First, choose a difficulty for the technical questions:</p>
+            <div class="flex gap-3"><button onclick="beginMockSession('easy')" class="flex-1 bg-green-500 hover:bg-green-600 p-3 rounded-lg">Easy</button><button onclick="beginMockSession('medium')" class="flex-1 bg-yellow-500 hover:bg-yellow-600 p-3 rounded-lg">Medium</button><button onclick="beginMockSession('hard')" class="flex-1 bg-red-500 hover:bg-red-600 p-3 rounded-lg">Hard</button></div>`;
+            addMessage(difficultyHtml, 'bot', true);
+        }
+
+        function beginMockSession(difficulty) {
+            const data = chatbotData[currentRole];
+            const techQuestions = data.technical.filter(q => q.difficulty === difficulty);
+            const allQuestions = [...techQuestions, ...data.hr];
+            if (allQuestions.length === 0) {
+                addMessage(`Sorry, no questions found for '${difficulty}' difficulty. Please select another.`, 'bot', true);
+                return;
+            }
+            chatContainer.classList.add('hidden');
+            dynamicContainer.classList.remove('hidden');
+            displayMockQuestion(allQuestions, 0);
+        }
+
+        function displayMockQuestion(questions, index) {
+            if (index >= questions.length) {
+                endMockSession();
+                return;
+            }
+            const question = questions[index];
+            let mockHtml = `<div class="mock-card bg-gray-800 p-6 rounded-lg shadow-2xl fade-in">
+                <div class="flex justify-between items-center"><p class="text-gray-400 text-sm">Question ${index + 1} of ${questions.length}</p><div id="timer" class="text-lg font-bold">2:00</div></div>
+                <h2 class="text-2xl font-bold my-4">${question.q}</h2>
+                <textarea id="user-answer" class="w-full h-32 p-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Type your answer here..."></textarea>
+                <div id="model-answer-container" class="hidden mt-4 p-3 bg-gray-900/50 rounded-lg"><p class="font-bold mb-1">Model Answer:</p><div class="text-sm">${question.a}</div></div>
+                <div class="flex gap-3 mt-4">
+                    <button onclick='revealAnswer()' id="reveal-btn" class="flex-1 bg-indigo-500 hover:bg-indigo-600 p-3 rounded-lg">Reveal Answer</button>
+                    <button onclick='displayMockQuestion(${JSON.stringify(questions)}, ${index + 1})' class="flex-1 bg-gray-600 hover:bg-gray-500 p-3 rounded-lg">Next Question</button>
+                </div>
+            </div>`;
+            dynamicContainer.innerHTML = mockHtml;
+            startTimer(120, document.getElementById('timer'));
+        }
+
+        function revealAnswer() {
+            document.getElementById('model-answer-container').classList.remove('hidden');
+            document.getElementById('reveal-btn').disabled = true;
+            document.getElementById('reveal-btn').classList.add('opacity-50');
+        }
+
+        function startTimer(duration, display) {
+            let timer = duration, minutes, seconds;
+            clearInterval(mockInterviewTimer);
+            mockInterviewTimer = setInterval(() => {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+                display.textContent = minutes + ":" + seconds;
+                if (--timer < 0) {
+                    clearInterval(mockInterviewTimer);
+                    display.textContent = "Time's Up!";
+                }
+            }, 1000);
+        }
+        
+        function endMockSession() {
+            clearInterval(mockInterviewTimer);
+            dynamicContainer.classList.add('hidden');
+            chatContainer.classList.remove('hidden');
+            addMessage("Mock interview complete! Great job practicing.", 'bot', true);
+            displayResources();
+        }
+
+        function startQuiz() {
+            chatContainer.classList.add('hidden');
+            dynamicContainer.classList.remove('hidden');
+            displayQuizQuestion(0, 0);
+        }
+
+        function displayQuizQuestion(index, score) {
+            const questions = chatbotData[currentRole].mcqs;
+            if (index >= questions.length) {
+                showQuizResults(score, questions.length);
+                return;
+            }
+            const question = questions[index];
+            let quizHtml = `<div class="quiz-card bg-gray-800 p-6 rounded-lg shadow-2xl fade-in">
+                <p class="text-gray-400 text-sm">Question ${index + 1} of ${questions.length}</p>
+                <h2 class="text-2xl font-bold my-4">${question.q}</h2>
+                <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+            question.options.forEach((option, i) => {
+                quizHtml += `<button onclick="handleAnswer(${i}, ${index}, ${score})" class="option-btn text-left p-4 bg-gray-700 hover:bg-indigo-500 border-2 border-transparent rounded-lg">${option}</button>`;
+            });
+            quizHtml += `</div><div id="explanation" class="hidden mt-4 p-3 bg-gray-900/50 rounded-lg text-sm"></div></div>`;
+            dynamicContainer.innerHTML = quizHtml;
+        }
+
+        function handleAnswer(selectedIndex, qIndex, score) {
+            const question = chatbotData[currentRole].mcqs[qIndex];
+            const options = document.getElementById('options-container').children;
+            const explanationDiv = document.getElementById('explanation');
+            for(let btn of options) { btn.disabled = true; btn.classList.remove('hover:bg-indigo-500'); }
+
+            if (selectedIndex === question.correct) {
+                score++;
+                options[selectedIndex].classList.add('correct');
+            } else {
+                options[selectedIndex].classList.add('incorrect');
+                options[question.correct].classList.add('correct');
+            }
+            
+            explanationDiv.innerHTML = `<strong>Explanation:</strong> ${question.explanation}`;
+            explanationDiv.classList.remove('hidden');
+            
+            setTimeout(() => displayQuizQuestion(qIndex + 1, score), 2500);
+        }
+
+        function showQuizResults(finalScore, totalQuestions) {
+            saveQuizProgress(finalScore, totalQuestions);
+            const percentage = Math.round((finalScore / totalQuestions) * 100);
+            let resultHtml = `<div class="text-center bg-gray-800 p-8 rounded-lg shadow-2xl fade-in">
+                <h2 class="text-3xl font-bold mb-4">Quiz Complete!</h2><p class="text-xl text-gray-300 mb-6">You scored</p>
+                <div class="text-6xl font-bold text-indigo-400 mb-8">${finalScore} / ${totalQuestions} (${percentage}%)</div>
+                <button onclick="endQuiz()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg">Back to Menu</button>
+            </div>`;
+            dynamicContainer.innerHTML = resultHtml;
+        }
+        
+        function endQuiz() {
+            dynamicContainer.classList.add('hidden');
+            chatContainer.classList.remove('hidden');
+            addMessage("Quiz finished. Ready for the next challenge?", 'bot', true);
+            showModeSelection();
+        }
+
+        function displayResources() {
+            const resources = chatbotData[currentRole].resources;
+            if (!resources) return;
+            let resourceHtml = `<p class="font-bold mt-6 mb-2">Recommended Resources:</p><div class="flex flex-col gap-2">`;
+            resources.forEach(r => {
+                resourceHtml += `<a href="${r.url}" target="_blank" class="p-3 bg-gray-600 hover:bg-gray-500 rounded-lg transition">${r.title}</a>`;
+            });
+            resourceHtml += `</div>`;
+            addMessage(resourceHtml, 'bot', true);
+        }
+
+        function saveQuizProgress(score, total) {
+            const progress = JSON.parse(localStorage.getItem('interviewPrepProgress') || '{}');
+            if (!progress[currentRole]) progress[currentRole] = [];
+            progress[currentRole].push({ score, total, date: new Date().toLocaleDateString() });
+            localStorage.setItem('interviewPrepProgress', JSON.stringify(progress));
+        }
+
+        function displayProgress() {
+            const progress = JSON.parse(localStorage.getItem('interviewPrepProgress') || '{}');
+            const roleProgress = progress[currentRole];
+            if (!roleProgress || roleProgress.length === 0) {
+                addMessage("No quiz history found for this role yet. Take a quiz to start tracking your progress!", 'bot', true);
+                return;
+            }
+            let progressHtml = `<h2 class="text-lg font-bold mb-3">Quiz History for ${currentRole.replace(/\b\w/g, l => l.toUpperCase())}</h2>`;
+            progressHtml += `<div class="space-y-2">`;
+            roleProgress.slice(-5).reverse().forEach(p => {
+                progressHtml += `<div class="p-3 bg-gray-600 rounded-lg"><strong>${p.date}:</strong> Scored ${p.score}/${p.total}</div>`;
+            });
+            progressHtml += `</div>`;
+            addMessage(progressHtml, 'bot', true);
+        }
+        
+        function handleAutocomplete() {
+            const value = roleInput.value.toLowerCase();
+            autocompleteList.innerHTML = '';
+            if (!value) return;
+            const availableRoles = Object.keys(chatbotData);
+            const filteredRoles = availableRoles.filter(role => role.includes(value));
+
+            filteredRoles.forEach(role => {
+                const item = document.createElement('div');
+                item.className = 'p-3 hover:bg-gray-700 cursor-pointer';
+                item.textContent = role.replace(/\b\w/g, l => l.toUpperCase());
+                item.onclick = () => {
+                    roleInput.value = item.textContent;
+                    autocompleteList.innerHTML = '';
+                    handleRoleInput();
+                };
+                autocompleteList.appendChild(item);
+            });
+        }
+        
+        function setupTheme() {
+            const isLight = localStorage.getItem('theme') === 'light';
+            document.body.classList.toggle('light', isLight);
+            document.getElementById('theme-icon-sun').classList.toggle('hidden', !isLight);
+            document.getElementById('theme-icon-moon').classList.toggle('hidden', isLight);
+        }
+
+        function toggleTheme() {
+            const isLight = document.body.classList.toggle('light');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            setupTheme();
+        }
+
+        function resetChat() {
+            clearInterval(mockInterviewTimer);
+            chatContainer.innerHTML = '';
+            dynamicContainer.innerHTML = '';
+            dynamicContainer.classList.add('hidden');
+            chatContainer.classList.remove('hidden');
+            roleInputContainer.classList.remove('hidden');
+            restartBtn.classList.add('hidden');
+            currentRole = null;
+            showInitialGreeting();
+        }
+
+        function showInitialGreeting() {
+            addMessage("Hey there! 👋 I'm an interview prep chatbot, a project by Priyanshu.<br><br>To get started, please tell me the <strong>job role</strong> you're preparing for.", 'bot', true);
+        }
+
+        sendBtn.addEventListener('click', handleRoleInput);
+        roleInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleRoleInput(); });
+        roleInput.addEventListener('input', handleAutocomplete);
+        restartBtn.addEventListener('click', resetChat);
+        themeToggle.addEventListener('click', toggleTheme);
+        
+        window.onload = () => {
+            setupTheme();
+            showInitialGreeting();
+        };
+    </script>
+</body>
+</html>
+
