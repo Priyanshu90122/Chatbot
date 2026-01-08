@@ -12,14 +12,11 @@ Chatbot for CS and placement queries
 
 Logic games including Guess the Output and Tic Tac Toe
 
-Tech Stack
-
+# Tech Stack
 HTML, Tailwind CSS
 
-JavaScript
 
-How to Run
+# How to Run
 
 Clone the repository
-
 Open index.html in a browser
